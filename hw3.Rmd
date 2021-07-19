@@ -11,6 +11,11 @@ Load the instacart dataset
 library(tidyverse)
 library(p8105.datasets)
 data("instacart")
+
+knitr::opts_chunk$set(
+  fig.width = 8,
+  fig.asp = 0.6,
+  out.width = "90%")
 ```
 
 _Write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illustrative examples of observations._
@@ -55,13 +60,35 @@ instacart %>%
     n_obs = n()
   ) %>% 
   filter(n_obs >= 10000) %>% 
-    arrange((n_obs)) %>% 
-  ggplot(aes(x = aisle, y = n_obs)) +
-geom_point()
+     mutate(aisle = fct_reorder(aisle, n_obs)) %>% 
+  ggplot(aes(x = aisle, y = n_obs, label = aisle)) +
+geom_point() +
+scale_y_log10(breaks = c(20000, 40000, 60000, 80000, 100000, 150000), labels = c("20000", "40000", "60000", "80000", "100000", "150000")) +
+  geom_text(aes(label=aisle, hjust = 0, vjust = 1), size = 3, check_overlap = TRUE) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(
+    y = "Number of orders" 
+  )
 ```
 
-Arrange in ascending order. Change Y axis to log, and maybe put labels next to points.
 
-Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+_Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table._
+```{r}
+instacart %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  mutate(
+    order_rank = min_rank(-n_obs)
+  ) %>% 
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>% 
+  filter(order_rank <= 3) %>% 
+  arrange(aisle, order_rank)
+```
+
+
 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
 

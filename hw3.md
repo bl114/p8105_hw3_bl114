@@ -24,6 +24,11 @@ library(tidyverse)
 ``` r
 library(p8105.datasets)
 data("instacart")
+
+knitr::opts_chunk$set(
+  fig.width = 8,
+  fig.asp = 0.6,
+  out.width = "90%")
 ```
 
 *Write a short description of the dataset, noting the size and structure
@@ -131,19 +136,55 @@ instacart %>%
     n_obs = n()
   ) %>% 
   filter(n_obs >= 10000) %>% 
-    arrange((n_obs)) %>% 
-  ggplot(aes(x = aisle, y = n_obs)) +
-geom_point()
+     mutate(aisle = fct_reorder(aisle, n_obs)) %>% 
+  ggplot(aes(x = aisle, y = n_obs, label = aisle)) +
+geom_point() +
+scale_y_log10(breaks = c(20000, 40000, 60000, 80000, 100000, 150000), labels = c("20000", "40000", "60000", "80000", "100000", "150000")) +
+  geom_text(aes(label=aisle, hjust = 0, vjust = 1), size = 3, check_overlap = TRUE) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(
+    y = "Number of orders" 
+  )
 ```
 
-![](hw3_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+<img src="hw3_files/figure-gfm/unnamed-chunk-5-1.png" width="90%" />
 
-Arrange in ascending order. Change Y axis to log, and maybe put labels
-next to points.
-
-Make a table showing the three most popular items in each of the aisles
+*Make a table showing the three most popular items in each of the aisles
 “baking ingredients”, “dog food care”, and “packaged vegetables fruits”.
-Include the number of times each item is ordered in your table. Make a
-table showing the mean hour of the day at which Pink Lady Apples and
-Coffee Ice Cream are ordered on each day of the week; format this table
-for human readers (i.e. produce a 2 x 7 table).
+Include the number of times each item is ordered in your table.*
+
+``` r
+instacart %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  mutate(
+    order_rank = min_rank(-n_obs)
+  ) %>% 
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>% 
+  filter(order_rank <= 3) %>% 
+  arrange(aisle, order_rank)
+```
+
+    ## `summarise()` has grouped output by 'aisle'. You can override using the `.groups` argument.
+
+    ## # A tibble: 9 x 4
+    ## # Groups:   aisle [3]
+    ##   aisle                  product_name                           n_obs order_rank
+    ##   <chr>                  <chr>                                  <int>      <int>
+    ## 1 baking ingredients     Light Brown Sugar                        499          1
+    ## 2 baking ingredients     Pure Baking Soda                         387          2
+    ## 3 baking ingredients     Cane Sugar                               336          3
+    ## 4 dog food care          Snack Sticks Chicken & Rice Recipe Do…    30          1
+    ## 5 dog food care          Organix Chicken & Brown Rice Recipe       28          2
+    ## 6 dog food care          Small Dog Biscuits                        26          3
+    ## 7 packaged vegetables f… Organic Baby Spinach                    9784          1
+    ## 8 packaged vegetables f… Organic Raspberries                     5546          2
+    ## 9 packaged vegetables f… Organic Blueberries                     4966          3
+
+Make a table showing the mean hour of the day at which Pink Lady Apples
+and Coffee Ice Cream are ordered on each day of the week; format this
+table for human readers (i.e. produce a 2 x 7 table).

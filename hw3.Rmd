@@ -1,0 +1,67 @@
+---
+title: "Homework 3"
+author: Ben Lebwohl
+output: github_document
+---
+
+## Problem 1
+
+Load the instacart dataset
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+data("instacart")
+```
+
+_Write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illustrative examples of observations._
+
+```{r}
+instacart
+view(instacart)
+```
+
+The data set is a tibble, with >1.3 million observations and 14 columns. Each row is an order of a product. These come in batches of orders (order_id) and are tied to a user (user_id). Each product is associated with an aisle (aisle_id) and department (department_id)
+
+Let's see some of the more common departments and aisles that are ordered:
+
+```{r}
+instacart %>% 
+  group_by(department, aisle) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  arrange(desc(n_obs))
+```
+
+_How many aisles are there, and which aisles are the most items ordered from?_
+
+```{r}
+instacart %>% 
+  group_by(aisle) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  arrange(desc(n_obs))
+```
+
+There are 134 aisles, and the aisles that most items are ordered from are fresh vegetables and fresh fruits.
+
+_Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it._
+
+```{r}
+instacart %>% 
+  group_by(aisle) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  filter(n_obs >= 10000) %>% 
+    arrange((n_obs)) %>% 
+  ggplot(aes(x = aisle, y = n_obs)) +
+geom_point()
+```
+
+Arrange in ascending order. Change Y axis to log, and maybe put labels next to points.
+
+Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+

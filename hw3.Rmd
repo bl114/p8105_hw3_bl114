@@ -90,5 +90,59 @@ instacart %>%
 ```
 
 
-Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+_Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table)._
 
+```{r}
+instacart %>% 
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(names_from = product_name, values_from = mean_hour)
+```
+
+## Problem 2
+
+
+_Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc)._
+
+```{r}
+accel_df =
+read_csv("./data/accel_data.csv") %>% 
+janitor::clean_names() %>% 
+  pivot_longer(
+    activity_1:activity_1440, 
+    names_to = "minute", 
+    names_prefix = "activity_", 
+    values_to = "activity") %>% 
+  mutate(
+    type_of_day = ifelse(day == "Saturday" | day == "Sunday" , "weekend", "weekday")
+  )
+
+accel_df %>% 
+  group_by(day_id) %>% 
+  summarize(n_obs = n())
+```
+
+The data set contains are 35 days, each with activity data on each of the 1440 minutes of the day.
+
+_Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?_
+
+```{r}
+accel_df %>% 
+  group_by(day_id, type_of_day) %>% 
+  summarize (total_activity = sum(activity)) %>% 
+  ggplot(aes(x = day_id, y = total_activity, color = type_of_day)) +
+  geom_point()
+```
+
+There is wide variability in activity! Weekends tend to have lower total activity.
+
+_Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph._
+
+```{r}
+accel_df %>% 
+  ggplot(aes(x = minute, y = activity, color = day)) +
+  geom_point() 
+```
+
+## Problem 3

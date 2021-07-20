@@ -185,6 +185,116 @@ instacart %>%
     ## 8 packaged vegetables f… Organic Raspberries                     5546          2
     ## 9 packaged vegetables f… Organic Blueberries                     4966          3
 
-Make a table showing the mean hour of the day at which Pink Lady Apples
+*Make a table showing the mean hour of the day at which Pink Lady Apples
 and Coffee Ice Cream are ordered on each day of the week; format this
-table for human readers (i.e. produce a 2 x 7 table).
+table for human readers (i.e. produce a 2 x 7 table).*
+
+``` r
+instacart %>% 
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(names_from = product_name, values_from = mean_hour)
+```
+
+    ## `summarise()` has grouped output by 'product_name'. You can override using the `.groups` argument.
+
+    ## # A tibble: 7 x 3
+    ##   order_dow `Coffee Ice Cream` `Pink Lady Apples`
+    ##       <int>              <dbl>              <dbl>
+    ## 1         0               13.8               13.4
+    ## 2         1               14.3               11.4
+    ## 3         2               15.4               11.7
+    ## 4         3               15.3               14.2
+    ## 5         4               15.2               11.6
+    ## 6         5               12.3               12.8
+    ## 7         6               13.8               11.9
+
+## Problem 2
+
+*Load, tidy, and otherwise wrangle the data. Your final dataset should
+include all originally observed variables and values; have useful
+variable names; include a weekday vs weekend variable; and encode data
+with reasonable variable classes. Describe the resulting dataset
+(e.g. what variables exist, how many observations, etc).*
+
+``` r
+accel_df =
+read_csv("./data/accel_data.csv") %>% 
+janitor::clean_names() %>% 
+  pivot_longer(
+    activity_1:activity_1440, 
+    names_to = "minute", 
+    names_prefix = "activity_", 
+    values_to = "activity") %>% 
+  mutate(
+    type_of_day = ifelse(day == "Saturday" | day == "Sunday" , "weekend", "weekday")
+  )
+```
+
+    ## 
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## cols(
+    ##   .default = col_double(),
+    ##   day = col_character()
+    ## )
+    ## ℹ Use `spec()` for the full column specifications.
+
+``` r
+accel_df %>% 
+  group_by(day_id) %>% 
+  summarize(n_obs = n())
+```
+
+    ## # A tibble: 35 x 2
+    ##    day_id n_obs
+    ##     <dbl> <int>
+    ##  1      1  1440
+    ##  2      2  1440
+    ##  3      3  1440
+    ##  4      4  1440
+    ##  5      5  1440
+    ##  6      6  1440
+    ##  7      7  1440
+    ##  8      8  1440
+    ##  9      9  1440
+    ## 10     10  1440
+    ## # … with 25 more rows
+
+The data set contains are 35 days, each with activity data on each of
+the 1440 minutes of the day.
+
+*Traditional analyses of accelerometer data focus on the total activity
+over the day. Using your tidied dataset, aggregate accross minutes to
+create a total activity variable for each day, and create a table
+showing these totals. Are any trends apparent?*
+
+``` r
+accel_df %>% 
+  group_by(day_id, type_of_day) %>% 
+  summarize (total_activity = sum(activity)) %>% 
+  ggplot(aes(x = day_id, y = total_activity, color = type_of_day)) +
+  geom_point()
+```
+
+    ## `summarise()` has grouped output by 'day_id'. You can override using the `.groups` argument.
+
+<img src="hw3_files/figure-gfm/unnamed-chunk-9-1.png" width="90%" />
+
+There is wide variability in activity! Weekends tend to have lower total
+activity.
+
+*Accelerometer data allows the inspection activity over the course of
+the day. Make a single-panel plot that shows the 24-hour activity time
+courses for each day and use color to indicate day of the week. Describe
+in words any patterns or conclusions you can make based on this graph.*
+
+``` r
+accel_df %>% 
+  ggplot(aes(x = minute, y = activity, color = day)) +
+  geom_point() 
+```
+
+<img src="hw3_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+
+## Problem 3

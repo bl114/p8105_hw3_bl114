@@ -23,10 +23,11 @@ library(tidyverse)
 
 ``` r
 library(p8105.datasets)
+library(patchwork)
 data("instacart")
 
 knitr::opts_chunk$set(
-  fig.width = 8,
+  fig.width = 6,
   fig.asp = 0.6,
   out.width = "90%")
 ```
@@ -291,10 +292,192 @@ in words any patterns or conclusions you can make based on this graph.*
 
 ``` r
 accel_df %>% 
+  mutate(
+    minute = as.numeric(minute)
+    )%>% 
   ggplot(aes(x = minute, y = activity, color = day)) +
-  geom_point() 
+  geom_point() +
+   scale_x_continuous(
+    breaks = c(200, 400, 600, 800, 1000, 1200),
+    labels = c("200", "400", "600", "800", "1000", "1200")
+   )
 ```
 
 <img src="hw3_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
 
+There are discrete times of day in which activity is consistently
+increased.
+
 ## Problem 3
+
+Load the NY NOAA data:
+
+``` r
+library(p8105.datasets)
+data("ny_noaa")
+ny_noaa
+```
+
+    ## # A tibble: 2,595,176 x 7
+    ##    id          date        prcp  snow  snwd tmax  tmin 
+    ##    <chr>       <date>     <int> <int> <int> <chr> <chr>
+    ##  1 US1NYAB0001 2007-11-01    NA    NA    NA <NA>  <NA> 
+    ##  2 US1NYAB0001 2007-11-02    NA    NA    NA <NA>  <NA> 
+    ##  3 US1NYAB0001 2007-11-03    NA    NA    NA <NA>  <NA> 
+    ##  4 US1NYAB0001 2007-11-04    NA    NA    NA <NA>  <NA> 
+    ##  5 US1NYAB0001 2007-11-05    NA    NA    NA <NA>  <NA> 
+    ##  6 US1NYAB0001 2007-11-06    NA    NA    NA <NA>  <NA> 
+    ##  7 US1NYAB0001 2007-11-07    NA    NA    NA <NA>  <NA> 
+    ##  8 US1NYAB0001 2007-11-08    NA    NA    NA <NA>  <NA> 
+    ##  9 US1NYAB0001 2007-11-09    NA    NA    NA <NA>  <NA> 
+    ## 10 US1NYAB0001 2007-11-10    NA    NA    NA <NA>  <NA> 
+    ## # … with 2,595,166 more rows
+
+This is a tibble with 2.59 million rows, containing data on
+precipitation and temperature for various weather stations
+
+``` r
+ny_noaa %>% 
+  group_by(id) %>% 
+  summarize(n_obs = n())
+```
+
+    ## # A tibble: 747 x 2
+    ##    id          n_obs
+    ##    <chr>       <int>
+    ##  1 US1NYAB0001  1157
+    ##  2 US1NYAB0006   852
+    ##  3 US1NYAB0010   822
+    ##  4 US1NYAB0016   214
+    ##  5 US1NYAB0017   459
+    ##  6 US1NYAB0021   365
+    ##  7 US1NYAB0022   273
+    ##  8 US1NYAB0023   365
+    ##  9 US1NYAB0025   215
+    ## 10 US1NYAL0002   549
+    ## # … with 737 more rows
+
+``` r
+ny_noaa %>% 
+  summary()
+```
+
+    ##       id                 date                 prcp               snow       
+    ##  Length:2595176     Min.   :1981-01-01   Min.   :    0.00   Min.   :  -13   
+    ##  Class :character   1st Qu.:1988-11-29   1st Qu.:    0.00   1st Qu.:    0   
+    ##  Mode  :character   Median :1997-01-21   Median :    0.00   Median :    0   
+    ##                     Mean   :1997-01-01   Mean   :   29.82   Mean   :    5   
+    ##                     3rd Qu.:2005-09-01   3rd Qu.:   23.00   3rd Qu.:    0   
+    ##                     Max.   :2010-12-31   Max.   :22860.00   Max.   :10160   
+    ##                                          NA's   :145838     NA's   :381221  
+    ##       snwd            tmax               tmin          
+    ##  Min.   :   0.0   Length:2595176     Length:2595176    
+    ##  1st Qu.:   0.0   Class :character   Class :character  
+    ##  Median :   0.0   Mode  :character   Mode  :character  
+    ##  Mean   :  37.3                                        
+    ##  3rd Qu.:   0.0                                        
+    ##  Max.   :9195.0                                        
+    ##  NA's   :591786
+
+There appear to be \~1500 weather stations, with dates spanning from
+1981 through 2010.
+
+*Do some data cleaning. Create separate variables for year, month, and
+day. Ensure observations for temperature, precipitation, and snowfall
+are given in reasonable units. For snowfall, what are the most commonly
+observed values? Why?*
+
+``` r
+ny_noaa =
+ny_noaa %>% 
+  mutate(
+  year = lubridate::year(date),
+  month = lubridate::month(date),
+  day = lubridate::day(date),
+  tmin = as.numeric(tmin) /10,
+  tmax = as.numeric(tmax) /10
+  ) %>% 
+  relocate(id, year, month, day) %>% 
+  select(-date)
+```
+
+``` r
+ny_noaa %>% 
+    group_by(snow) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  mutate(
+    order_rank = min_rank(-n_obs)
+    )%>% 
+      arrange(order_rank)
+```
+
+    ## # A tibble: 282 x 3
+    ##     snow   n_obs order_rank
+    ##    <int>   <int>      <int>
+    ##  1     0 2008508          1
+    ##  2    NA  381221          2
+    ##  3    25   31022          3
+    ##  4    13   23095          4
+    ##  5    51   18274          5
+    ##  6    76   10173          6
+    ##  7     8    9962          7
+    ##  8     5    9748          8
+    ##  9    38    9197          9
+    ## 10     3    8790         10
+    ## # … with 272 more rows
+
+For snowfall, the most commonly observed values are 0 and NA.
+
+*Make a two-panel plot showing the average max temperature in January
+and in July in each station across years. Is there any observable /
+interpretable structure? Any outliers?*
+
+``` r
+  ny_noaa %>% 
+  filter(month == 1 | month == 7) %>% 
+  group_by(id, month) %>% 
+  summarize(
+    average_tmax = median(tmax, na.rm = TRUE)
+  ) %>% 
+  filter(average_tmax != "NaN") %>% 
+ggplot(aes(x = average_tmax)) +
+        geom_histogram() +
+        facet_grid(. ~ month)
+```
+
+    ## `summarise()` has grouped output by 'id'. You can override using the `.groups` argument.
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+<img src="hw3_files/figure-gfm/unnamed-chunk-15-1.png" width="90%" />
+
+*Make a two-panel plot showing (i) tmax vs tmin for the full dataset
+(note that a scatterplot may not be the best option); and (ii) make a
+plot showing the distribution of snowfall values greater than 0 and less
+than 100 separately by year.*
+
+``` r
+ plot_1 = ny_noaa %>% 
+  ggplot(aes (x = tmin, y = tmax)) +
+           geom_hex()
+
+plot_2 = ny_noaa %>% 
+  filter(snow <100 & snow >0) %>% 
+  mutate(
+    year = as.factor(year)
+  ) %>% 
+  ggplot(aes(y = snow)) +
+  geom_boxplot() +
+    facet_grid(. ~ year) +
+    theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+plot_1 / plot_2
+```
+
+    ## Warning: Removed 1136276 rows containing non-finite values (stat_binhex).
+
+<img src="hw3_files/figure-gfm/unnamed-chunk-16-1.png" width="90%" />

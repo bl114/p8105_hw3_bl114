@@ -10,10 +10,11 @@ Load the instacart dataset
 ```{r}
 library(tidyverse)
 library(p8105.datasets)
+library(patchwork)
 data("instacart")
 
 knitr::opts_chunk$set(
-  fig.width = 8,
+  fig.width = 6,
   fig.asp = 0.6,
   out.width = "90%")
 ```
@@ -141,8 +142,108 @@ _Accelerometer data allows the inspection activity over the course of the day. M
 
 ```{r}
 accel_df %>% 
+  mutate(
+    minute = as.numeric(minute)
+    )%>% 
   ggplot(aes(x = minute, y = activity, color = day)) +
-  geom_point() 
+  geom_point() +
+   scale_x_continuous(
+    breaks = c(200, 400, 600, 800, 1000, 1200),
+    labels = c("200", "400", "600", "800", "1000", "1200")
+   )
 ```
 
+There are discrete times of day in which activity is consistently increased.
+
 ## Problem 3
+
+Load the NY NOAA data:
+
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+ny_noaa
+```
+
+This is a tibble with 2.59 million rows, containing data on precipitation and temperature for various weather stations
+
+```{r}
+ny_noaa %>% 
+  group_by(id) %>% 
+  summarize(n_obs = n())
+
+ny_noaa %>% 
+  summary()
+```
+
+There appear to be ~1500 weather stations, with dates spanning from 1981 through 2010.
+
+_Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?_
+
+```{r}
+ny_noaa =
+ny_noaa %>% 
+  mutate(
+  year = lubridate::year(date),
+  month = lubridate::month(date),
+  day = lubridate::day(date),
+  tmin = as.numeric(tmin) /10,
+  tmax = as.numeric(tmax) /10
+  ) %>% 
+  relocate(id, year, month, day) %>% 
+  select(-date)
+
+```
+
+```{r}
+ny_noaa %>% 
+    group_by(snow) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  mutate(
+    order_rank = min_rank(-n_obs)
+    )%>% 
+      arrange(order_rank)
+```
+
+For snowfall, the most commonly observed values are 0 and NA.
+
+_Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?_
+
+```{r}
+  ny_noaa %>% 
+  filter(month == 1 | month == 7) %>% 
+  group_by(id, month) %>% 
+  summarize(
+    average_tmax = median(tmax, na.rm = TRUE)
+  ) %>% 
+  filter(average_tmax != "NaN") %>% 
+ggplot(aes(x = average_tmax)) +
+        geom_histogram() +
+        facet_grid(. ~ month)
+       
+```
+
+_Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year._
+
+```{r}
+ plot_1 = ny_noaa %>% 
+  ggplot(aes (x = tmin, y = tmax)) +
+           geom_hex()
+
+plot_2 = ny_noaa %>% 
+  filter(snow <100 & snow >0) %>% 
+  mutate(
+    year = as.factor(year)
+  ) %>% 
+  ggplot(aes(y = snow)) +
+  geom_boxplot() +
+    facet_grid(. ~ year) +
+    theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+plot_1 / plot_2
+```
+
